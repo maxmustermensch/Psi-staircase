@@ -1,42 +1,41 @@
 import numpy as np
 import PsiMarginal
 
-ntrials = 300  # number of trials
-mu = np.linspace(2, 4, 41)  # threshold/bias grid
-sigma = np.linspace(0.05, 1, 21)  # slope grid
-x = np.linspace(1.5, 4.5, 61)  # possible stimuli to use
-lapse = np.linspace(0, 0.1, 15)  # lapse grid
-guessRate = 0.5  # fixed guess rate
+ntrials = 5  # number of trials
+a = np.linspace(0.01, 60, 31)  # threshold/bias grid
+b = np.linspace(0.01, 10, 50)  # slope grid
+x = np.linspace(0, 45, 19)  # possible stimuli to use
+delta = 0.2  # lapse grid
+gamma = np.linspace(0.01, 0.99, 100)  # guess rate equal to lapse
 
 # parameters used to simulate observer
-muGen = 3
-sigmaGen = 0.2
-lapseGen = 0.05
+a_Gen = 12
+b_Gen = 2
+delta_Gen = 0.2
+gamma_Gen = 0.3
 
-thresholdPrior = ('normal', 3, 2)  # truncated normal distribution as prior
-slopePrior = ('gamma', 2, 0.3)  # truncated gamma distribution as prior
-lapsePrior = ('beta', 2, 20)  # truncated beta distribution as prior
 
 # initialize algorithm
-psi = PsiMarginal.Psi(x, Pfunction='cGauss', nTrials=ntrials, threshold=mu, thresholdPrior=thresholdPrior,
-                      slope=sigma, slopePrior=slopePrior, guessRate=guessRate, guessPrior=('uniform', None),
-                      lapseRate=lapse, lapsePrior=lapsePrior, marginalize=True)
+psi = PsiMarginal.Psi(x, Pfunction='Weibull', nTrials=ntrials, threshold=a, slope=b, guessRate=gamma,
+                      lapseRate=delta, marginalize=True)
 
 # parameters to generate first response
-generativeParams = np.array(([muGen, sigmaGen, guessRate, lapseGen, psi.xCurrent])).T
+generativeParams = np.array(([a_Gen, b_Gen, delta_Gen, gamma_Gen, psi.xCurrent])).T
 # [1,4] appose to [0,4] is required for likelihood function, so add an additional dim.
 generativeParams = np.expand_dims(generativeParams, 0)
 
-print ('Simulating an observer with mu=%.2f, sigma=%.2f and lapse=%.2f.' % (muGen, sigmaGen, lapseGen))
+print ('Simulating an observer with a=%.2f, b=%.2f and delta=%.2f.' % (a_Gen, b_Gen, delta_Gen))
 for i in range(0, ntrials):  # run for length of trials
-    r = PsiMarginal.GenerateData(generativeParams, psyfun='cGauss')  # generate simulated response
+    print (psi.xCurrent)
+    # r = PsiMarginal.GenerateData(generativeParams, psyfun='Weibull')  # generate simulated response
+    r = int(input("input: "))
     psi.addData(r)  # update Psi with response
     print ('Trial %d of %d' % (i, ntrials))
     while psi.xCurrent == None:  # wait until next stimuli is calculated
         pass
 
     generativeParams[0, 4] = psi.xCurrent  # set new stimuli to present
-print ('Estimated parameters of this observer are mu=%.2f, sigma=%.2f and lapse=%.2f.' % (psi.eThreshold,
+print ('Estimated parameters of this observer are a=%.2f, b=%.2f and delta=%.2f.' % (psi.eThreshold,
                                                                                          psi.eSlope,
                                                                                          psi.eLapse))
-psi.plot(muRef=muGen, sigmaRef=sigmaGen, lapseRef=lapseGen, guessRef=guessRate)
+psi.plot(muRef=a_Gen, sigmaRef=b_Gen, lapseRef=delta_Gen, guessRef=gamma_Gen)
